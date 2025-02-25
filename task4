@@ -1,0 +1,99 @@
+import java.util.Scanner;
+import java.util.concurrent.*;
+
+class QuizQuestion {
+    private String question;
+    private String[] options;
+    private int correctAnswer;
+
+    public QuizQuestion(String question, String[] options, int correctAnswer) {
+        this.question = question;
+        this.options = options;
+        this.correctAnswer = correctAnswer;
+    }
+
+    public String getQuestion() {
+        return question;
+    }
+
+    public String[] getOptions() {
+        return options;
+    }
+
+    public int getCorrectAnswer() {
+        return correctAnswer;
+    }
+}
+
+public class TimedQuiz {
+    private static final int TIME_LIMIT_PER_QUESTION = 10; // Time limit in seconds
+    private static final QuizQuestion[] quizQuestions = {
+        new QuizQuestion("What is the capital of France?", 
+                         new String[]{"A. Paris", "B. London", "C. Berlin", "D. Madrid"}, 1),
+        new QuizQuestion("Which planet is known as the Red Planet?", 
+                         new String[]{"A. Earth", "B. Mars", "C. Jupiter", "D. Saturn"}, 2),
+        new QuizQuestion("What is 2 + 2?", 
+                         new String[]{"A. 3", "B. 4", "C. 5", "D. 6"}, 2),
+        new QuizQuestion("Who wrote 'Romeo and Juliet'?", 
+                         new String[]{"A. Charles Dickens", "B. William Shakespeare", "C. Mark Twain", "D. Jane Austen"}, 2),
+        new QuizQuestion("What is the largest ocean on Earth?", 
+                         new String[]{"A. Atlantic", "B. Indian", "C. Arctic", "D. Pacific"}, 4)
+    };
+
+    public static void main(String[] args) {
+        Scanner scanner = new Scanner(System.in);
+        int score = 0;
+        int totalQuestions = quizQuestions.length;
+        boolean[] results = new boolean[totalQuestions]; // Track correct/incorrect answers
+
+        System.out.println("Welcome to the Timed Quiz!");
+        System.out.println("You have " + TIME_LIMIT_PER_QUESTION + " seconds to answer each question.\n");
+
+        for (int i = 0; i < totalQuestions; i++) {
+            QuizQuestion currentQuestion = quizQuestions[i];
+            System.out.println("Question " + (i + 1) + ": " + currentQuestion.getQuestion());
+            for (String option : currentQuestion.getOptions()) {
+                System.out.println(option);
+            }
+
+            // Timer for the question
+            ExecutorService executor = Executors.newSingleThreadExecutor();
+            Future<String> future = executor.submit(() -> {
+                System.out.print("Your answer (A/B/C/D): ");
+                return scanner.next().toUpperCase();
+            });
+
+            try {
+                String userAnswer = future.get(TIME_LIMIT_PER_QUESTION, TimeUnit.SECONDS);
+                int userChoice = userAnswer.charAt(0) - 'A' + 1; // Convert A/B/C/D to 1/2/3/4
+                if (userChoice == currentQuestion.getCorrectAnswer()) {
+                    System.out.println("Correct!\n");
+                    score++;
+                    results[i] = true;
+                } else {
+                    System.out.println("Incorrect! The correct answer was: " + 
+                                       currentQuestion.getOptions()[currentQuestion.getCorrectAnswer() - 1] + "\n");
+                    results[i] = false;
+                }
+            } catch (TimeoutException e) {
+                System.out.println("\nTime's up! The correct answer was: " + 
+                                   currentQuestion.getOptions()[currentQuestion.getCorrectAnswer() - 1] + "\n");
+                results[i] = false;
+            } catch (Exception e) {
+                System.out.println("An error occurred.");
+            } finally {
+                executor.shutdownNow();
+            }
+        }
+
+        // Display results
+        System.out.println("Quiz Over!");
+        System.out.println("Your final score: " + score + "/" + totalQuestions);
+        System.out.println("\nSummary of Answers:");
+        for (int i = 0; i < totalQuestions; i++) {
+            System.out.println("Question " + (i + 1) + ": " + (results[i] ? "Correct" : "Incorrect"));
+        }
+
+        scanner.close();
+    }
+}
